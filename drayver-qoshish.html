@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Drayver qo'shish — ZIPPY TAXI</title>
+<style>
+  :root{
+    --ink:#1a140f;
+    --paper:#faf8f4;
+    --field:#f0ede6;
+    --field-border:#e4dfd4;
+    --yellow:#ffcc33;
+    --yellow-dark:#e0ab00;
+    --muted:#8a8378;
+    --red:#e0483c;
+    --green:#3fa15e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Roboto, -apple-system, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:22px 20px 20px;
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.3px;
+  }
+  header .brand{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--yellow);
+    margin-bottom:4px;
+    font-weight:700;
+  }
+  .steps{
+    display:flex;
+    gap:6px;
+    padding:14px 20px 0;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .step-bar{
+    flex:1;
+    height:3px;
+    border-radius:3px;
+    background:var(--field-border);
+    overflow:hidden;
+  }
+  .step-bar.active, .step-bar.done{ background:var(--yellow); }
+
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:24px 20px 120px;
+  }
+  .page{ display:none; }
+  .page.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .section-title{
+    font-size:19px;
+    font-weight:700;
+    margin:28px 0 16px;
+  }
+  .section-title:first-child{ margin-top:0; }
+
+  label{
+    display:block;
+    font-size:14.5px;
+    margin-bottom:8px;
+    color:var(--ink);
+  }
+  label .req{ color:var(--red); margin-left:2px; }
+  label .opt{ color:var(--muted); font-size:12.5px; font-weight:400; margin-left:4px; }
+
+  .field-wrap{ margin-bottom:20px; }
+
+  input[type=text], input[type=tel], input[type=date], select{
+    width:100%;
+    padding:15px 16px;
+    border-radius:12px;
+    border:1.5px solid var(--field-border);
+    background:var(--field);
+    font-size:16px;
+    color:var(--ink);
+    font-family:inherit;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--yellow-dark);
+    background:#fff;
+  }
+  input.invalid, select.invalid{ border-color:var(--red); }
+
+  select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%231a140f' stroke-width='1.6' fill='none'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 16px center;
+  }
+
+  .hint{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+  .err-msg{ font-size:12.5px; color:var(--red); margin-top:6px; display:none; }
+  .field-wrap.error .err-msg{ display:block; }
+
+  .footer-bar{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    background:linear-gradient(to top, var(--paper) 60%, transparent);
+    padding:24px 20px 22px;
+  }
+  .footer-inner{
+    max-width:640px;
+    margin:0 auto;
+    display:flex;
+    gap:12px;
+  }
+  button{
+    font-family:inherit;
+    font-size:16.5px;
+    font-weight:700;
+    border:none;
+    border-radius:14px;
+    padding:16px 20px;
+    cursor:pointer;
+    flex:1;
+  }
+  .btn-primary{
+    background:var(--yellow);
+    color:var(--ink);
+    transition:transform .1s ease, background .15s ease;
+  }
+  .btn-primary:active{ transform:scale(0.98); background:var(--yellow-dark); }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-secondary{
+    background:transparent;
+    color:var(--ink);
+    border:1.5px solid var(--field-border);
+    flex:0 0 110px;
+  }
+
+  .toast{
+    position:fixed;
+    top:16px; left:50%;
+    transform:translateX(-50%) translateY(-120%);
+    background:var(--ink);
+    color:#fff;
+    padding:14px 20px;
+    border-radius:12px;
+    font-size:14.5px;
+    z-index:100;
+    transition:transform .3s ease;
+    display:flex; align-items:center; gap:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.2);
+    max-width:90%;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  .toast.ok{ border-left:4px solid var(--green); }
+  .toast.fail{ border-left:4px solid var(--red); }
+
+  .success-screen{
+    display:none;
+    text-align:center;
+    padding:60px 20px;
+  }
+  .success-screen.active{ display:block; }
+  .success-screen .badge{
+    width:72px; height:72px;
+    border-radius:50%;
+    background:var(--yellow);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 20px;
+    font-size:34px;
+  }
+  .success-screen h2{ margin:0 0 8px; font-size:22px; }
+  .success-screen p{ color:var(--muted); font-size:15px; line-height:1.5; margin:0 auto 28px; max-width:360px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Zippy Taxi</div>
+  <h1 id="pageTitle">Drayver qo'shish</h1>
+  <div class="steps">
+    <div class="step-bar active" id="bar1"></div>
+    <div class="step-bar" id="bar2"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- PAGE 1 -->
+  <section class="page active" id="page1">
+    <div class="section-title">Umumiy ma'lumot</div>
+
+    <div class="field-wrap">
+      <label>Familiya<span class="req">*</span></label>
+      <input type="text" id="familiya" placeholder="Masalan: Karimov">
+      <div class="err-msg">Familiyani kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Ism<span class="req">*</span></label>
+      <input type="text" id="ism" placeholder="Masalan: Zokir">
+      <div class="err-msg">Ismni kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Otasining ismi<span class="opt">(ixtiyoriy)</span></label>
+      <input type="text" id="otasismi" placeholder="Masalan: Bahodir o'g'li">
+    </div>
+
+    <div class="field-wrap">
+      <label>Telefon<span class="req">*</span></label>
+      <input type="tel" id="telefon" placeholder="+998 90 123 45 67">
+      <div class="err-msg">Telefon raqamini kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Tug'ilgan kuni<span class="req">*</span></label>
+      <input type="date" id="tugilgan">
+      <div class="hint">Masalan: 03.04.2001</div>
+      <div class="err-msg">Tug'ilgan kunini tanlang</div>
+    </div>
+
+    <div class="section-title">Haydovchilik guvohnomasi</div>
+
+    <div class="field-wrap">
+      <label>Haydovchilik guvohnomasi raqami<span class="req">*</span></label>
+      <input type="text" id="guvohnoma" placeholder="Masalan: UZAF1926732" style="text-transform:uppercase">
+      <div class="err-msg">Guvohnoma raqamini kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Guvohnoma berilgan hudud<span class="req">*</span></label>
+      <select id="hudud">
+        <option value="">Tanlang</option>
+        <option>Toshkent shahri</option>
+        <option>Toshkent viloyati</option>
+        <option>Andijon</option>
+        <option>Farg'ona</option>
+        <option>Namangan</option>
+        <option>Samarqand</option>
+        <option>Buxoro</option>
+        <option>Navoiy</option>
+        <option>Jizzax</option>
+        <option>Sirdaryo</option>
+        <option>Qashqadaryo</option>
+        <option>Surxondaryo</option>
+        <option>Xorazm</option>
+        <option>Qoraqalpog'iston</option>
+      </select>
+      <div class="err-msg">Hududni tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Guvohnoma berilgan sana<span class="req">*</span></label>
+      <input type="date" id="berilgansana">
+      <div class="hint">Masalan: 01.02.2019</div>
+      <div class="err-msg">Berilgan sanani tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Amal qilish muddati<span class="opt">(ixtiyoriy)</span></label>
+      <input type="date" id="muddat">
+      <div class="hint">Masalan: 01.02.2029</div>
+    </div>
+  </section>
+
+  <!-- PAGE 2 -->
+  <section class="page" id="page2">
+    <div class="section-title">Ish sharoitlari</div>
+
+    <div class="field-wrap">
+      <label>Shahar<span class="req">*</span></label>
+      <select id="shahar">
+        <option value="">Tanlang</option>
+        <option>Toshkent</option>
+        <option>Andijon</option>
+        <option>Farg'ona</option>
+        <option>Namangan</option>
+        <option>Samarqand</option>
+        <option>Buxoro</option>
+        <option>Navoiy</option>
+        <option>Jizzax</option>
+        <option>Sirdaryo</option>
+        <option>Qashqadaryo</option>
+        <option>Surxondaryo</option>
+        <option>Xorazm</option>
+        <option>Nukus</option>
+      </select>
+      <div class="err-msg">Shaharni tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Tarif<span class="req">*</span></label>
+      <select id="tarif">
+        <option value="">Tanlang</option>
+        <option>Econom</option>
+        <option>Start</option>
+        <option>Komfort</option>
+        <option>Komfort+</option>
+        <option>Biznes</option>
+        <option>Premier</option>
+      </select>
+      <div class="err-msg">Tarifni tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Park<span class="req">*</span></label>
+      <input type="text" id="park" value="No name">
+      <div class="err-msg">Park nomini kiriting</div>
+    </div>
+
+    <div class="section-title">Avtomobil</div>
+
+    <div class="field-wrap">
+      <label>Brend<span class="req">*</span></label>
+      <input type="text" id="brend" placeholder="Masalan: Chevrolet, BYD">
+      <div class="err-msg">Brendni kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Model<span class="req">*</span></label>
+      <input type="text" id="model" placeholder="Masalan: Cobalt, Lacetti, e2">
+      <div class="err-msg">Modelni kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Avtomobil raqami<span class="req">*</span></label>
+      <input type="text" id="avtoraqam" placeholder="Masalan: 01A000AA" style="text-transform:uppercase">
+      <div class="err-msg">Avtomobil raqamini kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Rang<span class="req">*</span></label>
+      <select id="rang">
+        <option value="">Tanlang</option>
+        <option>Oq</option>
+        <option>Qora</option>
+        <option>Kulrang</option>
+        <option>Kumush</option>
+        <option>Ko'k</option>
+        <option>Qizil</option>
+        <option>Yashil</option>
+        <option>Boshqa</option>
+      </select>
+      <div class="err-msg">Rangni tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>Avtomobil ishlab chiqarilgan yili<span class="req">*</span></label>
+      <select id="yil"></select>
+      <div class="err-msg">Ishlab chiqarilgan yilni tanlang</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>PNFL<span class="req">*</span></label>
+      <input type="text" id="pnfl" inputmode="numeric" maxlength="14" placeholder="14 ta raqam">
+      <div class="err-msg">14 xonali PNFL kiriting</div>
+    </div>
+
+    <div class="field-wrap">
+      <label>VIN raqami<span class="req">*</span></label>
+      <input type="text" id="vin" placeholder="Masalan: XW8ZZZ..." style="text-transform:uppercase">
+      <div class="err-msg">VIN raqamini kiriting</div>
+    </div>
+  </section>
+
+  <!-- SUCCESS -->
+  <section class="success-screen" id="successScreen">
+    <div class="badge">✓</div>
+    <h2>Ariza yuborildi</h2>
+    <p>Drayver ma'lumotlari muvaffaqiyatli qabul qilindi. Tez orada operator siz bilan bog'lanadi.</p>
+    <button class="btn-primary" style="max-width:220px; margin:0 auto; display:block;" onclick="resetForm()">Yana ariza yuborish</button>
+  </section>
+
+</main>
+
+<div class="footer-bar" id="footerBar">
+  <div class="footer-inner">
+    <button class="btn-secondary" id="backBtn" style="display:none;" onclick="goToPage(1)">Orqaga</button>
+    <button class="btn-primary" id="nextBtn" onclick="goToPage(2)">Davom etish</button>
+    <button class="btn-primary" id="submitBtn" style="display:none;" onclick="submitForm()">Yuborish</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- CONFIG ----
+  // Insert your Telegram bot token below (get it from @BotFather).
+  // The bot must already be an admin of the target channel.
+  const BOT_TOKEN = "8826972597:AAEI6rwGx963dmHn5WB27gPvY2jniHXFY3M";
+  const CHAT_ID = "4257967556"; // Kanal ID — add a "-100" prefix if Telegram rejects it as-is
+  // -----------------
+
+  // populate year select 1990-current
+  const yilSelect = document.getElementById('yil');
+  const nowYear = new Date().getFullYear();
+  yilSelect.innerHTML = '<option value="">Tanlang</option>' +
+    Array.from({length: nowYear - 1989}, (_, i) => nowYear - i)
+      .map(y => `<option>${y}</option>`).join('');
+
+  function goToPage(n){
+    if(n === 2 && !validatePage(1)) return;
+    document.getElementById('page1').classList.toggle('active', n===1);
+    document.getElementById('page2').classList.toggle('active', n===2);
+    document.getElementById('bar1').classList.toggle('done', n===2);
+    document.getElementById('bar2').classList.toggle('active', n===2);
+    document.getElementById('backBtn').style.display = n===2 ? 'block' : 'none';
+    document.getElementById('nextBtn').style.display = n===1 ? 'block' : 'none';
+    document.getElementById('submitBtn').style.display = n===2 ? 'block' : 'none';
+    document.getElementById('pageTitle').textContent = n===1 ? "Drayver qo'shish" : "Ish sharoitlari";
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function fieldsForPage(n){
+    return n === 1
+      ? ['familiya','ism','telefon','tugilgan','guvohnoma','hudud','berilgansana']
+      : ['shahar','tarif','park','brend','model','avtoraqam','rang','yil','pnfl','vin'];
+  }
+
+  function validatePage(n){
+    let ok = true;
+    fieldsForPage(n).forEach(id => {
+      const el = document.getElementById(id);
+      const wrap = el.closest('.field-wrap');
+      let valid = el.value.trim().length > 0;
+      if(id === 'pnfl') valid = /^\d{14}$/.test(el.value.trim());
+      if(!valid){
+        ok = false;
+        wrap.classList.add('error');
+        el.classList.add('invalid');
+      } else {
+        wrap.classList.remove('error');
+        el.classList.remove('invalid');
+      }
+    });
+    if(!ok) showToast('Iltimos, barcha majburiy maydonlarni to\'ldiring', false);
+    return ok;
+  }
+
+  function fmtDate(v){
+    if(!v) return '—';
+    const [y,m,d] = v.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
+  function val(id){ return document.getElementById(id).value.trim(); }
+
+  function buildMessage(){
+    const fio = [val('familiya'), val('ism'), val('otasismi')].filter(Boolean).join(' ');
+    return `🚖 Yangi drayver arizasi
+
+👤 F.I.SH: ${fio}
+📞 Telefon: ${val('telefon')}
+🎂 Tug'ilgan kuni: ${fmtDate(val('tugilgan'))}
+
+🪪 Guvohnoma raqami: ${val('guvohnoma').toUpperCase()}
+🌍 Berilgan hudud: ${val('hudud')}
+📅 Berilgan sana: ${fmtDate(val('berilgansana'))}
+⏳ Amal qilish muddati: ${val('muddat') ? fmtDate(val('muddat')) : '—'}
+
+🏙 Shahar: ${val('shahar')}
+💼 Tarif: ${val('tarif')}
+🅿️ Park: ${val('park')}
+
+🚗 Avtomobil: ${val('brend')} ${val('model')}
+🔢 Davlat raqami: ${val('avtoraqam').toUpperCase()}
+🎨 Rang: ${val('rang')}
+📆 Ishlab chiqarilgan yili: ${val('yil')}
+🆔 PNFL: ${val('pnfl')}
+🔧 VIN: ${val('vin').toUpperCase()}`;
+  }
+
+  async function submitForm(){
+    if(!validatePage(2)) return;
+
+    if(BOT_TOKEN === "YOUR_BOT_TOKEN_HERE"){
+      showToast('BOT_TOKEN sozlanmagan — kod ichidan token qo\'shing', false);
+      return;
+    }
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Yuborilmoqda...';
+
+    try{
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ chat_id: CHAT_ID, text: buildMessage() })
+      });
+      const data = await res.json();
+      if(data.ok){
+        document.querySelector('main').querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('successScreen').classList.add('active');
+        document.getElementById('footerBar').style.display = 'none';
+      } else {
+        showToast('Xatolik: ' + (data.description || 'yuborib bo\'lmadi'), false);
+      }
+    } catch(e){
+      showToast('Internet yoki server xatosi', false);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Yuborish';
+    }
+  }
+
+  function showToast(msg, ok=true){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (ok ? 'ok' : 'fail');
+    setTimeout(()=> t.classList.remove('show'), 2800);
+  }
+
+  function resetForm(){
+    document.querySelectorAll('input').forEach(i => { if(i.id !== 'park') i.value=''; });
+    document.querySelectorAll('select').forEach(s => s.value='');
+    document.getElementById('park').value = 'No name';
+    document.getElementById('successScreen').classList.remove('active');
+    document.getElementById('footerBar').style.display = 'block';
+    goToPage(1);
+  }
+</script>
+
+</body>
+</html>
